@@ -21,13 +21,9 @@ namespace OrderApi.API.DTOs
         }
         
         public Guid Id { get; set; }
-        
         public Guid CustomerId { get; set; }
-        
         public decimal Value { get; set; }
-        
         public string Status { get; set; }
-        
         public List<OrderItem> Items { get; set; }
     }
 }

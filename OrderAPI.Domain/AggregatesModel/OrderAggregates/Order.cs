@@ -43,7 +43,6 @@ namespace OrderAPI.Domain.AggregatesModel.OrderAggregates
             var @event = new OrderItemsUpdated(this, items);
             
             AddEvent(@event);
-            Apply(@event);
         }
         
         public void ConfirmOrder()
@@ -51,7 +50,6 @@ namespace OrderAPI.Domain.AggregatesModel.OrderAggregates
             var @event = new OrderConfirmed(this);
             
             AddEvent(@event);
-            Apply(@event);
         }
 
         protected override void Apply(IDomainEvent<Guid> @event)

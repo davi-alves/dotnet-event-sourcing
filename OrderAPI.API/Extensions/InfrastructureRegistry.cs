@@ -20,7 +20,7 @@ namespace OrderApi.API.Extensions
             // EntityEvent DbContext
             services.AddDbContext<EntityEventContext>(opt =>
                 opt.UseSqlite(config.GetConnectionString("DefaultConnection")));
-            // ReadState DB
+            // DynamoDB
             var awsOptions = config.GetAWSOptions();
             services.AddDefaultAWSOptions(awsOptions);
             services.AddAWSService<IAmazonDynamoDB>();
