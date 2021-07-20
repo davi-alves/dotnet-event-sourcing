@@ -42,14 +42,14 @@ namespace OrderApi.Infrastructure.EventStore
 
         #region Factory
 
-        private static readonly ConstructorInfo CTor;
+        private static readonly ConstructorInfo Ctor;
 
         static BaseAggregateRoot()
         {
             var aggregateType = typeof(TA);
-            CTor = aggregateType.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public,
+            Ctor = aggregateType.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public,
                 null, new Type[0], new ParameterModifier[0]);
-            if (null == CTor)
+            if (null == Ctor)
                 throw new InvalidOperationException($"Unable to find required private parameterless constructor for Aggregate of type '{aggregateType.Name}'");
         }
 
@@ -62,7 +62,7 @@ namespace OrderApi.Infrastructure.EventStore
             if(!domainEvents.Any())
                 throw new ArgumentNullException(nameof(events));
             
-            var result = (TA)CTor.Invoke(new object[0]);
+            var result = (TA)Ctor.Invoke(new object[0]);
             if (result is BaseAggregateRoot<TA, TKey> baseAggregate) 
                 foreach (var @event in domainEvents)
                     baseAggregate.AddEvent(@event);

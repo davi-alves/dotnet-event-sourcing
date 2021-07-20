@@ -8,7 +8,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
+using Newtonsoft.Json;
 using OrderApi.API.Extensions;
+using OrderAPI.Infrastructure.Core.SnsClasses;
 using OrderApi.Domain.Commands;
 using OrderAPI.Domain.Events;
 using OrderApi.Domain.Queries;
@@ -16,6 +18,7 @@ using OrderAPI.Infrastructure.Core;
 using OrderApi.Infrastructure.EventStore;
 using OrderApi.Infrastructure.Persistence;
 using OrderApi.Infrastructure.Repositores;
+using OrderApi.OrderAPI.Domain.Handlers;
 
 namespace OrderApi
 {
@@ -32,15 +35,13 @@ namespace OrderApi
         public void ConfigureServices(IServiceCollection services)
         {
 
-            services.AddControllers();
+            services.AddControllers(o=> o.InputFormatters.Insert(o.InputFormatters.Count, new TextPlainInputFormatter()))
+                .AddNewtonsoftJson(x =>
+                    x.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore);
             services.AddInfrastructure(Configuration);
             // JSON Serializer
-            services.AddSingleton<IEventSerializer>(new JsonEventSerializer(new[]
-            {
-                typeof(OrderCreated).Assembly,
-                typeof(OrderItemsUpdated).Assembly,
-                typeof(OrderConfirmed).Assembly,
-            }));
+            services.AddSingleton<IEventSerializer,JsonEventSerializer>();
+            
             // Swagger config
             services.AddSwaggerGen(c =>
             {
@@ -62,9 +63,8 @@ namespace OrderApi
                         .WithOrigins("http://localhost:3000", "http://localhost:5000");
                 });
             });
-            // Mediator handlers
-            services.AddMediatR(typeof(OrderById.Handler));
-            services.AddMediatR(typeof(CreateOrder.Handler));
+          
+            services.AddMediatR(typeof(Startup).Assembly);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

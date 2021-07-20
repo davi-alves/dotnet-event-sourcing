@@ -14,7 +14,7 @@ namespace OrderApi.API.DTOs
         public Guid CustomerId { get; set; }
         
         [Required]
-        public Decimal Value { get; set; }
+        public decimal Value { get; set; }
         
         public List<OrderItem> Items { get; set; }
 

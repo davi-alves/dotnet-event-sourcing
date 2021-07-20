@@ -44,7 +44,7 @@ namespace OrderAPI.Domain.AggregatesModel.OrderAggregates
 
             if (state == null)
             {
-                throw new Exception($"Possible values for OrderStatus: {String.Join(",", List().Select(s => s.Name))}");
+                throw new Exception($"Possible values for OrderStatus: {String.Join(",", List().Select(s => s.Id))}");
             }
 
             return state;

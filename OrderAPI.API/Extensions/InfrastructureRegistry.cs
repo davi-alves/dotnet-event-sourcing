@@ -19,59 +19,18 @@ namespace OrderApi.API.Extensions
         {
             // EntityEvent DbContext
             services.AddDbContext<EntityEventContext>(opt =>
-                opt.UseSqlite(config.GetConnectionString("DefaultConnection")));
+                opt.UseSqlite(config.GetConnectionString("DefaultConnection")
+                ), ServiceLifetime.Singleton);
             // DynamoDB
             var awsOptions = config.GetAWSOptions();
             services.AddDefaultAWSOptions(awsOptions);
             services.AddAWSService<IAmazonDynamoDB>();
 
-            services.AddEventsService<Order, Guid>(config);
-            services.AddEventsRepository<Order, Guid>(config);
-            services.AddReadRepository<Order, Guid>(config);
+            services.AddSingleton<IEventsRepository<Order,Guid>, EventsRepository<Order,Guid>>();
+            services.AddSingleton<IReadStoreRepository<Order, Guid>, ReadStoreRepository<Order, Guid>>();
+            services.AddSingleton<IEventsService<Order,Guid>, EventsService<Order,Guid>>();
 
             return services;
-        }
-
-        private static IServiceCollection AddEventsService<TA, TK>(this IServiceCollection services,
-            IConfiguration config)
-            where TA : class, IAggregateRoot<TK>
-        {
-            return services.AddSingleton<IEventsService<TA, TK>>(ctx =>
-            {
-                // TODO: add events producer
-                // var eventsProducer = ctx.GetRequiredService<IEventProducer<TA, TK>>();
-                var writeRepo = ctx.GetRequiredService<IEventsRepository<TA, TK>>();
-                var readRepo = ctx.GetRequiredService<IReadStoreRepository<TA, TK>>();
-
-                return new EventsService<TA, TK>(writeRepo, readRepo);
-            });
-        }
-
-        private static IServiceCollection AddEventsRepository<TA, TK>(this IServiceCollection services,
-            IConfiguration config)
-            where TA : class, IAggregateRoot<TK>
-        {
-            return services.AddSingleton<IEventsRepository<TA, TK>>(ctx =>
-            {
-                // TODO: Is there a better way to get the DbContext in a Singleton? 
-                var sp = services.BuildServiceProvider();
-                var dbContext = sp.GetRequiredService<EntityEventContext>();
-                var eventDeserializer = ctx.GetRequiredService<IEventSerializer>();
-
-                return new EventsRepository<TA, TK>(dbContext, eventDeserializer);
-            });
-        }
-        
-        private static IServiceCollection AddReadRepository<TA, TK>(this IServiceCollection services,
-            IConfiguration config)
-            where TA : class, IAggregateRoot<TK>
-        {
-            return services.AddSingleton<IReadStoreRepository<TA, TK>>(ctx =>
-            {
-                var amazonDynamoDb = ctx.GetRequiredService<IAmazonDynamoDB>();
-
-                return new ReadStoreRepository<TA, TK>(amazonDynamoDb);
-            });
         }
     }
 }

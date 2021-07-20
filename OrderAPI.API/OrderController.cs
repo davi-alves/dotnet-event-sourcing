@@ -2,9 +2,11 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using OrderApi.API.DTOs;
+using OrderAPI.Infrastructure.Core.SnsClasses;
 using OrderAPI.Domain.AggregatesModel.OrderAggregates;
 using OrderApi.Domain.Commands;
 using OrderApi.Domain.Queries;
+using Newtonsoft.Json;
 
 namespace OrderApi.API
 {
@@ -15,47 +17,82 @@ namespace OrderApi.API
         [HttpGet("{id}")]
         public async Task<ActionResult<Order>> GetOrder(Guid id)
         {
-            var query = new OrderById.Query(id);
+            var query = new OrderByIdQuery(id);
             var result = await Mediator.Send(query);
             if (null == result)
                 return NotFound();
             return Ok(result);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> CreateOrder(CreateOrderDto dto)
+        [HttpPost("CreateOrder")]
+        [Consumes("text/plain")]
+        public async Task<IActionResult> CreateOrder()
         {
-            /*
-             * 1. Receive the message from SNS
-             * 2. Parse from plain text
-             * 3. Retrieve the message payload
-             * 4. Parse into CreateOrderDto
-             * 5. Call the Command
-             * 6. Return a confirmation
-             */
+            // all of this logic can be moved to the command and let the controller better
+            var snsMessage = JsonConvert.DeserializeObject<AwsSnsMessage>(await Request.GetRawBodyStringAsync());
 
+            if (snsMessage?.SubscribeURL != null)
+            {
+                return Ok(snsMessage.SubscribeURL);
+            }
+            
+            if (snsMessage?.Message == null)
+            {
+                return BadRequest("No order was sent in the request.");
+            }
+            
+            var dto = JsonConvert.DeserializeObject<CreateOrderDto>(snsMessage.Message);
+            
+            if (dto == null)
+            {
+                // add FluentValidation to handle this errors
+                return BadRequest("No order was sent in the request.");
+            }
+            
             var command =
-                new CreateOrder.Command(dto.TransactionId, dto.CustomerId, dto.Value, dto.Items, dto.Confirmed);
+                new CreateOrderCommand(dto.TransactionId, dto.CustomerId, dto.Value, dto.Items, dto.Confirmed);
             await Mediator.Send(command);
             var result = new {Id = command.Id};
 
             return CreatedAtAction("GetOrder", result, result);
         }
 
-        [HttpPost("sync")]
+        [HttpPost("SyncOrderFromCosmos")]
+        [Consumes("text/plain")]
         public async Task<IActionResult> SyncOrderFromCosmos()
         {
-            /*
-             * 1. Receive the message from SNS
-             * 2. Parse from plain text
-             * 3. Retrieve the message payload
-             * 4. Parse into a Dto (basic - v0)
-             * 5. Call the Command
-             * 6. Return a confirmation
-             */
+            var snsMessage = JsonConvert.DeserializeObject<AwsSnsMessage>(await Request.GetRawBodyStringAsync());
+
+            if (snsMessage?.SubscribeURL != null)
+            {
+                return Ok(snsMessage.SubscribeURL);
+            }
+            
+            if (snsMessage?.Message == null)
+            {
+                return BadRequest("No order was sent in the request.");
+            }
+            
+            var dto = JsonConvert.DeserializeObject<SyncOrderDto>(snsMessage.Message);
+
+            if (dto == null)
+            {
+                // add FluentValidation to handle this errors
+                return BadRequest("No order was sent in the request.");
+            }
 
             var command =
-                new SyncOrderFromCosmos.Command();
+                new SyncOrderFromCosmosCommand();
+            await Mediator.Send(command);
+
+            return NoContent();
+        }
+        
+        [HttpPost("CreateOrderTest")]
+        public async Task<IActionResult> CreateOrderTest(CreateOrderDto dto)
+        {
+            var command =
+                new CreateOrderCommand(dto.TransactionId, dto.CustomerId, dto.Value, dto.Items, dto.Confirmed);
             await Mediator.Send(command);
             var result = new {Id = command.Id};
 
