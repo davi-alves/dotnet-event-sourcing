@@ -6,7 +6,7 @@ using OrderAPI.Infrastructure.Core.SnsClasses;
 using OrderAPI.Domain.AggregatesModel.OrderAggregates;
 using OrderApi.Domain.Commands;
 using OrderApi.Domain.Queries;
-using System.Text.Json;
+using Newtonsoft.Json;
 
 namespace OrderApi.API
 {
@@ -28,14 +28,20 @@ namespace OrderApi.API
         [Consumes("text/plain")]
         public async Task<IActionResult> CreateOrder()
         {
-            var snsMessage = JsonSerializer.Deserialize<AwsSnsMessage>(await Request.GetRawBodyStringAsync());
+            // all of this logic can be moved to the command and let the controller better
+            var snsMessage = JsonConvert.DeserializeObject<AwsSnsMessage>(await Request.GetRawBodyStringAsync());
 
+            if (snsMessage?.SubscribeURL != null)
+            {
+                return Ok(snsMessage.SubscribeURL);
+            }
+            
             if (snsMessage?.Message == null)
             {
                 return BadRequest("No order was sent in the request.");
             }
             
-            var dto = JsonSerializer.Deserialize<CreateOrderDto>(snsMessage.Message);
+            var dto = JsonConvert.DeserializeObject<CreateOrderDto>(snsMessage.Message);
             
             if (dto == null)
             {
@@ -55,14 +61,19 @@ namespace OrderApi.API
         [Consumes("text/plain")]
         public async Task<IActionResult> SyncOrderFromCosmos()
         {
-            var snsMessage = JsonSerializer.Deserialize<AwsSnsMessage>(await Request.GetRawBodyStringAsync());
+            var snsMessage = JsonConvert.DeserializeObject<AwsSnsMessage>(await Request.GetRawBodyStringAsync());
 
+            if (snsMessage?.SubscribeURL != null)
+            {
+                return Ok(snsMessage.SubscribeURL);
+            }
+            
             if (snsMessage?.Message == null)
             {
                 return BadRequest("No order was sent in the request.");
             }
             
-            var dto = JsonSerializer.Deserialize<SyncOrderDto>(snsMessage.Message);
+            var dto = JsonConvert.DeserializeObject<SyncOrderDto>(snsMessage.Message);
 
             if (dto == null)
             {
